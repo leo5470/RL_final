@@ -12,11 +12,12 @@ import os
 import random
 
 class EvalDiffusionEnv(gym.Env):
-    def __init__(self, model_name, target_steps=10, max_steps=100, img_save_path=None, action_range=1.0, seed=0):
+    def __init__(self, model_name, target_steps=10, max_steps=100, img_save_path=None, action_range=1.0, seed=0, env_id=0):
         super(EvalDiffusionEnv, self).__init__()
         self.sample_number_count = 0
         self.img_save_path = img_save_path
         self.target_steps = target_steps
+        self.env_id = env_id
         # Load diffusion model
         if os.path.isdir(model_name):
             from diffusers_old import DDIMPipeline, DDIMScheduler, UNet2DModel
@@ -132,7 +133,7 @@ class EvalDiffusionEnv(gym.Env):
             images = (self.current_image / 2 + 0.5).clamp(0, 1)
             images = images.cpu().permute(0, 2, 3, 1).numpy()[0]
             images = Image.fromarray((images * 255).round().astype("uint8"))
-            filename = os.path.join(self.img_save_path, f"img_{self.sample_number_count}.png")
+            filename = os.path.join(self.img_save_path, f"img_{self.env_id}_{self.sample_number_count}.png")
             images.save(filename)
             # print(f"Image saved at {filename}")
             self.sample_number_count += 1

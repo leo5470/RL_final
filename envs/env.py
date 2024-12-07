@@ -112,6 +112,7 @@ class DiffusionEnv(gym.Env):
         self.GT_image = input.cpu()
         observation = {
             "image": self.current_image.squeeze(0).cpu().numpy(),  
+            # "image": self.current_image.cpu().numpy(),  
             "value": np.array([999])
         }
         # images = (self.GT_image / 2 + 0.5).clamp(0, 1)
@@ -215,6 +216,7 @@ class DiffusionEnv(gym.Env):
         # print('info:', info)
         observation = {
             "image": self.current_image.squeeze(0),  
+            # "image": self.current_image,  
             "value": np.array([t.item()]) # make sure it has the shape of (1,)
         }
         #     prof.step()
