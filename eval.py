@@ -24,31 +24,60 @@ def arg_parser():
     parser.add_argument("--action_range", type=float, default=1.0, help="Range of the action")
     return parser.parse_args()
 
-def make_env(my_config):
+def make_env(my_config, idx):
     def _init():
         config = {
             "model_name": my_config["DM_model"],
             "target_steps": my_config["target_steps"],
             "max_steps": my_config["max_steps"],
             "img_save_path": my_config["img_save_path"],
-            "action_range": my_config["action_range"]
+            "action_range": my_config["action_range"],
+            "env_id": idx
         }
         return gym.make('final-eval', **config)
     return _init
 
+# def evaluation(env, model, eval_num=100):
+#     """We only evaluate seeds 0-99 as our public test cases."""
+
+#     ### Run eval_num times rollouts,
+#     for _ in tqdm(range(eval_num)):
+#         done = False
+#         # Set seed and reset env using Gymnasium API
+#         obs = env.reset()
+
+#         while not done:
+#             # Interact with env using Gymnasium API
+#             action, _state = model.predict(obs, deterministic=True)
+#             obs, reward, done, info = env.step(action)
+
 def evaluation(env, model, eval_num=100):
-    """We only evaluate seeds 0-99 as our public test cases."""
-
-    ### Run eval_num times rollouts,
-    for _ in tqdm(range(eval_num)):
-        done = False
-        # Set seed and reset env using Gymnasium API
-        obs = env.reset()
-
-        while not done:
-            # Interact with env using Gymnasium API
-            action, _state = model.predict(obs, deterministic=True)
-            obs, reward, done, info = env.step(action)
+    # Keep track of how many episodes have finished
+    episodes_done = 0
+    # Reset all environments to start parallel episodes
+    obs = env.reset()
+    
+    # We continue until we have completed 'eval_num' episodes in total
+    pbar = tqdm(total=eval_num)
+    
+    while episodes_done < eval_num:
+        # Predict actions for all environments at once
+        actions, _states = model.predict(obs, deterministic=True)
+        
+        # Take a step in all environments simultaneously
+        obs, rewards, dones, infos = env.step(actions)
+        
+        # Check which environments have finished episodes
+        for done, info in zip(dones, infos):
+            if done:
+                episodes_done += 1
+                pbar.update(1)
+                
+                # If we have reached our total evaluation episodes, we can break early
+                if episodes_done >= eval_num:
+                    break
+                    
+    pbar.close()
 
 if __name__ == "__main__":
     args = arg_parser()
@@ -77,7 +106,8 @@ if __name__ == "__main__":
     }
     ### Load model with SB3
     model = PPO.load(my_config['save_path'])
-    env = DummyVecEnv([make_env(my_config) for _ in range(my_config['num_eval_envs'])])
+    # env = DummyVecEnv([make_env(my_config) for _ in range(my_config['num_eval_envs'])])
+    env = SubprocVecEnv([make_env(my_config, i) for i in range(my_config['num_eval_envs'])])
     
     evaluation(env, model, my_config['eval_num'])
 

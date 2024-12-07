@@ -71,10 +71,9 @@ class CustomCNN(BaseFeaturesExtractor):
 
     def forward(self, observations: th.Tensor) -> th.Tensor:
         # images = observations['image'].squeeze(1)
-        images = observations['image']
-        img_features = self.cnn(images.float())
-        value = observations['value'].float()   # Shape: [batch_size]
-        value = value.view(-1, 1)             # Add extra dimension: [batch_size, 1]
+        images = observations['image'].float()
+        img_features = self.cnn(images)
+        value = observations['value'].float() 
         value_features = F.relu(self.fc(value))
         combined = th.cat([img_features, value_features], dim=1)
         return self.linear(combined)
@@ -167,13 +166,13 @@ def main():
     )
     # TODO: extract config
     my_config = {
-        "run_id": "PPO_test_multi",
+        "run_id": "PPO_test_multi_cifar10_value_ver3",
 
         "algorithm": PPO,
         "policy_network": "MultiInputPolicy",
-        "save_path": "model/PPO_test_multi_cifar10",
+        "save_path": "model/PPO_test_multi_cifar10_ver3",
 
-        "epoch_num": 500, # default is 500
+        "epoch_num": 5000, # default is 500
         "timesteps_per_epoch": 100,
         "eval_episode_num": 10,
         "learning_rate": 1e-4,
@@ -187,7 +186,7 @@ def main():
         # "mode": "onnx", # onnx, diffusers
 
         "num_train_envs": 8, # default is 16, 8 is better.
-        "n_steps": 128 # default is 2048
+        "n_steps": 128 # default is 2048, 128 is better
     }
     run = wandb.init(
         project="final",
